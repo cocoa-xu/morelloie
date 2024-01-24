@@ -133,7 +133,7 @@ jobs:
           context: llvm
           file: ./llvm/Dockerfile
           push: true
-          tags: cocoa-xu/morelloie-llvm:latest,cocoa-xu/morelloie-llvm:${{ steps.parse-versions.outputs.tag }}
+          tags: cocoaxu/morelloie-llvm:latest,cocoaxu/morelloie-llvm:${{ steps.parse-versions.outputs.tag }}
 
       - name: Cache Morello GCC
         if: steps.parse-versions.outputs.type == 'gcc'
@@ -158,4 +158,4 @@ jobs:
           context: gcc
           file: ./gcc/Dockerfile
           push: true
-          tags: cocoa-xu/morelloie-gcc:latest,cocoa-xu/morelloie-gcc:${{ steps.parse-versions.outputs.tag }}
+          tags: cocoaxu/morelloie-gcc:latest,cocoaxu/morelloie-gcc:${{ steps.parse-versions.outputs.tag }}
