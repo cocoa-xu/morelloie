@@ -45,11 +45,11 @@ jobs:
         run: |
           GITHUB_REF="${{ github.ref }}"
           case "$GITHUB_REF" in
-            refs/tags/*+llvm)
+            refs/tags/*_llvm)
               VERSIONS="${GITHUB_REF#refs/tags/v}"
-              export MORELLOIE_VERSION="$(echo $VERSIONS | cut -d+ -f 1)"
-              export MORELLO_LLVM_VERSION="$(echo $VERSIONS | cut -d+ -f 2)"
-              export MUSL_VERSION="$(echo $VERSIONS | cut -d+ -f 3)"
+              export MORELLOIE_VERSION="$(echo $VERSIONS | cut -d '_' -f 1)"
+              export MORELLO_LLVM_VERSION="$(echo $VERSIONS | cut -d '_' -f 2)"
+              export MUSL_VERSION="$(echo $VERSIONS | cut -d '_' -f 3)"
 
               echo "Using morelloie version: ${MORELLOIE_VERSION}"
               echo "Using morello LLVM version: ${MORELLO_LLVM_VERSION}"
@@ -59,12 +59,12 @@ jobs:
               echo "morello_llvm_version=${MORELLO_LLVM_VERSION}" >> $GITHUB_OUTPUT
               echo "musl_version=${MUSL_VERSION}" >> $GITHUB_OUTPUT
               echo "type=llvm" >> $GITHUB_OUTPUT
-              echo "tag=v${MORELLOIE_VERSION}+${MORELLO_LLVM_VERSION}+${MUSL_VERSION}" >> $GITHUB_OUTPUT
+              echo "tag=v${MORELLOIE_VERSION}_${MORELLO_LLVM_VERSION}_${MUSL_VERSION}" >> $GITHUB_OUTPUT
               ;;
-            refs/tags/*+gcc)
+            refs/tags/*_gcc)
               VERSIONS="${GITHUB_REF#refs/tags/v}"
-              export MORELLOIE_VERSION="$(echo $VERSIONS | cut -d+ -f 1)"
-              export GCC_VERSION="$(echo $VERSIONS | cut -d+ -f 2)"
+              export MORELLOIE_VERSION="$(echo $VERSIONS | cut -d '_' -f 1)"
+              export GCC_VERSION="$(echo $VERSIONS | cut -d '_' -f 2)"
 
               echo "Using morelloie version: ${MORELLOIE_VERSION}"
               echo "Using morello GCC version: ${GCC_VERSION}"
@@ -72,7 +72,7 @@ jobs:
               echo "morelloie_version=${MORELLOIE_VERSION}" >> $GITHUB_OUTPUT
               echo "morello_gcc_version=${GCC_VERSION}" >> $GITHUB_OUTPUT
               echo "type=gcc" >> $GITHUB_OUTPUT
-              echo "tag=v${MORELLOIE_VERSION}+${GCC_VERSION}" >> $GITHUB_OUTPUT
+              echo "tag=v${MORELLOIE_VERSION}_${GCC_VERSION}" >> $GITHUB_OUTPUT
               ;;
           esac
 
@@ -151,7 +151,7 @@ jobs:
           export GCC_FULL_VERSION="arm-gnu-toolchain-${MORELLO_GCC_VERSION}-aarch64-aarch64-none-linux-gnu"
           curl -fSL "https://developer.arm.com/-/media/Files/downloads/gnu-morello/${MORELLO_GCC_VERSION}/binrel/${GCC_FULL_VERSION}.tar.xz" -o "./gcc/arm-gnu-toolchain-aarch64-aarch64-none-linux-gnu.tar.xz"
           
-      - name: Build and push LLVM image
+      - name: Build and push GCC image
         if: steps.parse-versions.outputs.type == 'gcc' 
         uses: docker/build-push-action@v5
         with:
