@@ -4,8 +4,6 @@ LABEL maintainer="Cocoa <i@uwucocoa.moe>"
 WORKDIR /root
 ENV MORELLOIE_PREFIX=/root/morelloie \
     GCC_PREFIX=/root/aarch64-none-linux-gnu \
-    GCC_VERSION="10.1.morello-alp2" \
-    GCC_FULL_VERSION="arm-gnu-toolchain-10.1.morello-alp2-aarch64-aarch64-none-linux-gnu" \
     PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/aarch64-none-linux-gnu/bin:/root/morelloie/bin \
     DEBIAN_FRONTEND=noninteractive \
     LANG=en_US.UTF-8 \
@@ -13,6 +11,7 @@ ENV MORELLOIE_PREFIX=/root/morelloie \
     LC_ALL=en_US.UTF-8
 
 COPY morelloie.tgz.sh /root/morelloie.tgz.sh
+COPY arm-gnu-toolchain-aarch64-aarch64-none-linux-gnu.tar.xz /root/arm-gnu-toolchain-aarch64-aarch64-none-linux-gnu.tar.xz
 
 RUN apt-get update -q=2 && \
     apt-get install -q=2 --yes \
@@ -28,11 +27,8 @@ RUN cd /root && \
     chmod a+x "/root/morelloie.tgz.sh" && \
     /root/morelloie.tgz.sh --i-agree-to-the-contained-eula --prefix=${MORELLOIE_PREFIX} && \
     rm -rf "/root/morelloie.tgz.sh" && \
-    curl -fSL "https://developer.arm.com/-/media/Files/downloads/gnu-morello/${GCC_VERSION}/binrel/${GCC_FULL_VERSION}.tar.xz" \
-        -o "${GCC_FULL_VERSION}.tar.xz" && \
-    tar xf "${GCC_FULL_VERSION}.tar.xz" && \
-    mv "./${GCC_FULL_VERSION}" "${GCC_PREFIX}" && \
-    rm -f "${GCC_FULL_VERSION}.tar.xz" && \
+    tar -xf "/root/arm-gnu-toolchain-aarch64-aarch64-none-linux-gnu.tar.xz" -C "${GCC_PREFIX}" --strip-components=1 && \
+    rm -f "/root/arm-gnu-toolchain-aarch64-aarch64-none-linux-gnu.tar.xz" && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     echo "root:root" | chpasswd
