@@ -1,0 +1,73 @@
+name: auto-update
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 9 * * *"
+
+jobs:
+  auto-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.AUTO_UPDATE_TOKEN }}
+
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl jq
+
+      - name: Get latest LLVM version
+        id: latest-llvm-version
+        run: |
+          LASTEST_SYSROOT_VERSION="$(curl -fsSL 'https://api.github.com/repos/cocoa-xu/aarch64c-linux-sysroot/releases/latest' | jq .name -r)"
+          echo "Latest aarch64c-linux-sysroot version: ${LASTEST_SYSROOT_VERSION}"
+          echo "llvm-version=${LASTEST_SYSROOT_VERSION}" >> $GITHUB_OUTPUT
+          echo "llvm-tag=${LASTEST_SYSROOT_VERSION}+llvm" >> $GITHUB_OUTPUT
+
+      - name: Check if LLVM tag exists
+        uses: mukunku/tag-exists-action@v1.5.0
+        id: check-llvm-tag
+        with:
+          tag: ${{ steps.latest-llvm-version.outputs.llvm-tag }}
+          repo: 'cocoa-xu/morelloie'
+
+      - name: Update if LLVM tag not exists
+        if: steps.check-llvm-tag.outputs.exists == 'false'
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git tag ${{ steps.latest-llvm-version.outputs.llvm-tag }}
+          git push origin ${{ steps.latest-llvm-version.outputs.llvm-tag }}
+
+      - name: Get latest GCC version
+        id: latest-gcc-version
+        run: |
+          # Get MorelloIE version from steps.latest-llvm-version.outputs.llvm-version
+          LLVM_VERSION="${{ steps.latest-llvm-version.outputs.llvm-version }}"
+          LLVM_VERSION="${LLVM_VERSION#v}"
+          LATEST_MORELLOIE_VERSION="$(echo ${LLVM_VERSION} | cut -d'+' -f1)"
+
+          LASTEST_GCC_FILENAME="$(curl -fsSL 'https://developer.arm.com/downloads/-/arm-gnu-toolchain-for-morello-downloads' | grep -o -e 'arm-gnu-toolchain-[A-Za-z0-9.-]*-aarch64-aarch64-none-linux-gnu.tar.xz' | uniq)"
+          NO_PREFIX_GCC_VERSION="${LASTEST_GCC_FILENAME##arm-gnu-toolchain-}"
+          LASTEST_GCC_VERSION="${NO_PREFIX_GCC_VERSION%-aarch64-aarch64-none-linux-gnu.tar.xz}"
+          echo "Latest GCC toolchain version: ${LASTEST_GCC_VERSION}"
+          echo "gcc-version=${LASTEST_SYSROOT_VERSION}" >> $GITHUB_OUTPUT
+          echo "gcc-tag=v${LATEST_MORELLOIE_VERSION}+${LASTEST_SYSROOT_VERSION}+gcc" >> $GITHUB_OUTPUT
+
+      - name: Check if GCC tag exists
+        uses: mukunku/tag-exists-action@v1.5.0
+        id: check-gcc-tag
+        with:
+          tag: ${{ steps.latest-gcc-version.outputs.gcc-tag }}
+          repo: 'cocoa-xu/morelloie'
+
+      - name: Update if GCC tag not exists
+        if: steps.check-gcc-tag.outputs.exists == 'false'
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git tag ${{ steps.latest-gcc-version.outputs.gcc-tag }}
+          git push origin ${{ steps.latest-gcc-version.outputs.gcc-tag }}

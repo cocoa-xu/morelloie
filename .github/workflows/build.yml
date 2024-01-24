@@ -1,0 +1,159 @@
+name: build-sysroot
+
+on:
+  pull_request:
+    paths-ignore:
+      - '*.md'
+      - '**/*.md'
+      - 'LICENSE*'
+  push:
+    paths-ignore:
+      - '*.md'
+      - '**/*.md'
+      - 'LICENSE*'
+    tags:
+      - 'v*'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Parse versions
+        id: parse-versions
+        run: |
+          GITHUB_REF="${{ github.ref }}"
+          case "$GITHUB_REF" in
+            refs/tags/*+llvm)
+              VERSIONS="${GITHUB_REF#refs/tags/v}"
+              export MORELLOIE_VERSION="$(echo $VERSIONS | cut -d+ -f 1)"
+              export MORELLO_LLVM_VERSION="$(echo $VERSIONS | cut -d+ -f 2)"
+              export MUSL_VERSION="$(echo $VERSIONS | cut -d+ -f 3)"
+
+              echo "Using morelloie version: ${MORELLOIE_VERSION}"
+              echo "Using morello LLVM version: ${MORELLO_LLVM_VERSION}"
+              echo "Using musl version: ${MUSL_VERSION}"
+
+              echo "morelloie_version=${MORELLOIE_VERSION}" >> $GITHUB_OUTPUT
+              echo "morello_llvm_version=${MORELLO_LLVM_VERSION}" >> $GITHUB_OUTPUT
+              echo "musl_version=${MUSL_VERSION}" >> $GITHUB_OUTPUT
+              echo "type=llvm" >> $GITHUB_OUTPUT
+              echo "tag=v${MORELLOIE_VERSION}+${MORELLO_LLVM_VERSION}+${MUSL_VERSION}" >> $GITHUB_OUTPUT
+              ;;
+            refs/tags/*+gcc)
+              VERSIONS="${GITHUB_REF#refs/tags/v}"
+              export MORELLOIE_VERSION="$(echo $VERSIONS | cut -d+ -f 1)"
+              export GCC_VERSION="$(echo $VERSIONS | cut -d+ -f 2)"
+
+              echo "Using morelloie version: ${MORELLOIE_VERSION}"
+              echo "Using morello GCC version: ${GCC_VERSION}"
+
+              echo "morelloie_version=${MORELLOIE_VERSION}" >> $GITHUB_OUTPUT
+              echo "morello_gcc_version=${GCC_VERSION}" >> $GITHUB_OUTPUT
+              echo "type=gcc" >> $GITHUB_OUTPUT
+              echo "tag=v${MORELLOIE_VERSION}+${GCC_VERSION}" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+      - name: Cache Morello IE
+        id: cache-morelloie
+        uses: actions/cache@v3
+        with:
+          key: morelloie-${{ steps.parse-versions.outputs.morelloie_version }}
+          path: |
+            ./morelloie-${{ steps.parse-versions.outputs.morelloie_version }}.tgz.sh
+
+      - name: Download Morello IE
+        if: steps.cache-morelloie.outputs.cache-hit != 'true'
+        run: |
+          curl -fSL "${MORELLOIE_DOWNLOAD_URL}/morelloie-${{ steps.parse-versions.outputs.morelloie_version }}.tgz.sh" -o "morelloie-${{ steps.parse-versions.outputs.morelloie_version }}.tgz.sh"
+
+      - name: Set up context for building docker image
+        run: |
+          ln "llvm/morelloie.tgz.sh" "morelloie-${{ steps.parse-versions.outputs.morelloie_version }}.tgz.sh"
+          ln "gcc/morelloie.tgz.sh" "morelloie-${{ steps.parse-versions.outputs.morelloie_version }}.tgz.sh"
+
+      - name: Cache Morello LLVM
+        if: steps.parse-versions.outputs.type == 'llvm'
+        id: cache-morello-llvm
+        uses: actions/cache@v3
+        with:
+          key: morello-llvm-linux-aarch64-${{ steps.parse-versions.outputs.morello_llvm_version }}
+          path: |
+            ./llvm/morello-llvm-linux-aarch64.tar.gz
+
+      - name: Download Morello LLVM
+        if: steps.parse-versions.outputs.type == 'llvm' && steps.cache-morello-llvm.outputs.cache-hit != 'true'
+        run: |
+          export MORELLO_LLVM_VERSION="${{ steps.parse-versions.outputs.morello_llvm_version }}"
+          curl -fSL "https://git.morello-project.org/morello/llvm-project-releases/-/archive/morello/linux-aarch64-release-${MORELLO_LLVM_VERSION}/llvm-project-releases-morello-linux-aarch64-release-${MORELLO_LLVM_VERSION}.tar.gz" -o "llvm/morello-llvm-linux-aarch64.tar.gz"
+
+      - name: Cache aarch64c-linux-sysroot
+        if: steps.parse-versions.outputs.type == 'llvm'
+        id: cache-aarch64c-linux-sysroot
+        uses: actions/cache@v3
+        with:
+          key: aarch64c-linux-sysroot-${{ steps.parse-versions.outputs.tag }}
+          path: |
+            ./llvm/musl-sysroot-hybrid.tar.gz
+            ./llvm/musl-sysroot-purecap.tar.gz
+
+      - name: Download aarch64c-linux-sysroot
+        if: steps.parse-versions.outputs.type == 'llvm' && steps.cache-aarch64c-linux-sysroot.outputs.cache-hit != 'true'
+        run: |
+          SYSROOT_VERSION="${{ steps.parse-versions.outputs.tag }}"
+          curl -fSL "https://github.com/cocoa-xu/aarch64c-linux-sysroot/releases/download/${SYSROOT_VERSION}/musl-sysroot-hybrid.tar.gz" -o "llvm/musl-sysroot-hybrid.tar.gz"
+          curl -fSL "https://github.com/cocoa-xu/aarch64c-linux-sysroot/releases/download/${SYSROOT_VERSION}/musl-sysroot-purecap.tar.gz" -o "llvm/musl-sysroot-purecap.tar.gz"
+
+      - name: Build and push LLVM image
+        if: steps.parse-versions.outputs.type == 'llvm' 
+        uses: docker/build-push-action@v5
+        with:
+          context: llvm
+          file: Dockerfile
+          push: true
+          tags: cocoa-xu/morelloie-llvm:latest,cocoa-xu/morelloie-llvm:${{ steps.parse-versions.outputs.tag }}
+
+      - name: Cache Morello GCC
+        if: steps.parse-versions.outputs.type == 'gcc'
+        id: cache-morello-gcc
+        uses: actions/cache@v3
+        with:
+          key: morello-gcc-linux-aarch64-${{ steps.parse-versions.outputs.morello_gcc_version }}
+          path: |
+            ./gcc/arm-gnu-toolchain-aarch64-aarch64-none-linux-gnu.tar.xz
+
+      - name: Download Morello GCC
+        if: steps.parse-versions.outputs.type == 'gcc' && steps.cache-morello-gcc.outputs.cache-hit != 'true'
+        run: |
+          export MORELLO_GCC_VERSION="${{ steps.parse-versions.outputs.morello_gcc_version }}"
+          export GCC_FULL_VERSION="arm-gnu-toolchain-${MORELLO_GCC_VERSION}-aarch64-aarch64-none-linux-gnu"
+          curl -fSL "https://developer.arm.com/-/media/Files/downloads/gnu-morello/${MORELLO_GCC_VERSION}/binrel/${GCC_FULL_VERSION}.tar.xz" -o "./gcc/arm-gnu-toolchain-aarch64-aarch64-none-linux-gnu.tar.xz"
+          
+      - name: Build and push LLVM image
+        if: steps.parse-versions.outputs.type == 'gcc' 
+        uses: docker/build-push-action@v5
+        with:
+          context: gcc
+          file: Dockerfile
+          push: true
+          tags: cocoa-xu/morelloie-gcc:latest,cocoa-xu/morelloie-gcc:${{ steps.parse-versions.outputs.tag }}

@@ -2,11 +2,7 @@ FROM --platform=linux/aarch64 ubuntu:latest
 LABEL maintainer="Cocoa <i@uwucocoa.moe>"
 
 WORKDIR /root
-ENV MORELLOIE_DOWNLOAD_URL="https://developer.arm.com/-/media/Arm%20Developer%20Community/Downloads/Morello/Development%20Tools/Morello%20Instruction%20Emulator" \
-    MORELLOIE_VERSION="2.3-533" \
-    MORELLO_LLVM_VERSION="1.6.1" \
-    MUSL_GITREF="morello/master" \
-    MORELLOIE_PREFIX=/root/morelloie \
+ENV MORELLOIE_PREFIX=/root/morelloie \
     GCC_PREFIX=/root/aarch64-none-linux-gnu \
     GCC_VERSION="10.1.morello-alp2" \
     GCC_FULL_VERSION="arm-gnu-toolchain-10.1.morello-alp2-aarch64-aarch64-none-linux-gnu" \
@@ -15,6 +11,8 @@ ENV MORELLOIE_DOWNLOAD_URL="https://developer.arm.com/-/media/Arm%20Developer%20
     LANG=en_US.UTF-8 \
     LANGUAGE=en_US:en \
     LC_ALL=en_US.UTF-8
+
+COPY morelloie.tgz.sh /root/morelloie.tgz.sh
 
 RUN apt-get update -q=2 && \
     apt-get install -q=2 --yes \
@@ -26,11 +24,10 @@ RUN apt-get update -q=2 && \
     locale-gen
 
 RUN cd /root && \
-    rm -rf ${HOME}/morelloie-* ${MORELLOIE_PREFIX} && \
-    curl -fSL "${MORELLOIE_DOWNLOAD_URL}/morelloie-${MORELLOIE_VERSION}.tgz.sh" -o "/root/morelloie-${MORELLOIE_VERSION}.tgz.sh" && \
-    chmod a+x "/root/morelloie-${MORELLOIE_VERSION}.tgz.sh" && \
-    /root/morelloie-${MORELLOIE_VERSION}.tgz.sh --i-agree-to-the-contained-eula --prefix=${MORELLOIE_PREFIX} && \
-    rm -rf ${GCC_PREFIX} && \
+    cd /root && \
+    chmod a+x "/root/morelloie.tgz.sh" && \
+    /root/morelloie.tgz.sh --i-agree-to-the-contained-eula --prefix=${MORELLOIE_PREFIX} && \
+    rm -rf "/root/morelloie.tgz.sh" && \
     curl -fSL "https://developer.arm.com/-/media/Files/downloads/gnu-morello/${GCC_VERSION}/binrel/${GCC_FULL_VERSION}.tar.xz" \
         -o "${GCC_FULL_VERSION}.tar.xz" && \
     tar xf "${GCC_FULL_VERSION}.tar.xz" && \
