@@ -131,7 +131,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: llvm
-          file: Dockerfile
+          file: ./llvm/Dockerfile
           push: true
           tags: cocoa-xu/morelloie-llvm:latest,cocoa-xu/morelloie-llvm:${{ steps.parse-versions.outputs.tag }}
 
@@ -156,6 +156,6 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: gcc
-          file: Dockerfile
+          file: ./gcc/Dockerfile
           push: true
           tags: cocoa-xu/morelloie-gcc:latest,cocoa-xu/morelloie-gcc:${{ steps.parse-versions.outputs.tag }}
