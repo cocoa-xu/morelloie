@@ -7,12 +7,6 @@ This repo contains my Dockerfiles for creating some non-official MorelloIE docke
 
 They contain the LLVM- and GCC-toolchain for the CHERI system, respectively. You can use them to compile your CHERI programs on your non-CHERI platform.
 
-## Build
-```bash
-docker build -f Dockerfile.llvm . -t cocoaxu/morelloie-llvm
-docker build -f Dockerfile.gcc . -t cocoaxu/morelloie-gcc
-```
-
 ## Run
 For example, if your source code is in `/home/user/src`, you can do the following:
 
@@ -28,8 +22,9 @@ Then you can compile your CHERI programs inside the container. Inside these Dock
 they both have `morelloie` pre-installed while the CHERI compiler is `clang` and `gcc`,
 respectively. 
   
-And for the LLVM toolchain specificly, a sysroot directory for Purecap can be found at 
-`/root/musl-sysroot-purecap`, which can be used later when compiling Purecap Morello programs
+And for the LLVM toolchain specificly, the sysroot directory for purecap can be found at 
+`/root/musl-sysroot-purecap` while the sysroot directory for hybrid can be found at 
+`/root/musl-sysroot-hybrid`, which can be used later when compiling purecap and hybrid Morello programs
 with `clang`.
 
 - If you're using the LLVM Docker image, ``cocoaxu/morelloie-llvm``, then the 
