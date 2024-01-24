@@ -54,8 +54,8 @@ jobs:
           NO_PREFIX_GCC_VERSION="${LASTEST_GCC_FILENAME##arm-gnu-toolchain-}"
           LASTEST_GCC_VERSION="${NO_PREFIX_GCC_VERSION%-aarch64-aarch64-none-linux-gnu.tar.xz}"
           echo "Latest GCC toolchain version: ${LASTEST_GCC_VERSION}"
-          echo "gcc-version=${LASTEST_SYSROOT_VERSION}" >> $GITHUB_OUTPUT
-          echo "gcc-tag=v${LATEST_MORELLOIE_VERSION}+${LASTEST_SYSROOT_VERSION}+gcc" >> $GITHUB_OUTPUT
+          echo "gcc-version=${LASTEST_GCC_VERSION}" >> $GITHUB_OUTPUT
+          echo "gcc-tag=v${LATEST_MORELLOIE_VERSION}+${LASTEST_GCC_VERSION}+gcc" >> $GITHUB_OUTPUT
 
       - name: Check if GCC tag exists
         uses: mukunku/tag-exists-action@v1.5.0
