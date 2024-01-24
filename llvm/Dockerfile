@@ -34,8 +34,10 @@ RUN cd /root && \
     mkdir -p ${LLVM_PREFIX} && \
     tar -xf "/root/morello-llvm-linux-aarch64.tar.gz" -C "${LLVM_PREFIX}" --strip-components=1 && \
     rm -rf "/root/morello-llvm-linux-aarch64.tar.gz" && \
+    mkdir -p ${MUSL_PREFIX_HYBRID} && \
     tar -xf "/root/musl-sysroot-hybrid.tar.gz" -C "${MUSL_PREFIX_HYBRID}" --strip-components=1 && \
     rm -rf "/root/musl-sysroot-hybrid.tar.gz" && \
+    mkdir -p ${MUSL_PREFIX_PURECAP} && \
     tar -xf "/root/musl-sysroot-purecap.tar.gz" -C "${MUSL_PREFIX_PURECAP}" --strip-components=1 && \
     rm -rf "/root/musl-sysroot-purecap.tar.gz" && \
     apt-get clean && \

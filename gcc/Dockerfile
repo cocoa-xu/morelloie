@@ -23,10 +23,10 @@ RUN apt-get update -q=2 && \
     locale-gen
 
 RUN cd /root && \
-    cd /root && \
     chmod a+x "/root/morelloie.tgz.sh" && \
     /root/morelloie.tgz.sh --i-agree-to-the-contained-eula --prefix=${MORELLOIE_PREFIX} && \
     rm -rf "/root/morelloie.tgz.sh" && \
+    mkdir -p ${GCC_PREFIX} && \
     tar -xf "/root/arm-gnu-toolchain-aarch64-aarch64-none-linux-gnu.tar.xz" -C "${GCC_PREFIX}" --strip-components=1 && \
     rm -f "/root/arm-gnu-toolchain-aarch64-aarch64-none-linux-gnu.tar.xz" && \
     apt-get clean && \
